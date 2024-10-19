@@ -1,9 +1,9 @@
 "use client"
-import Image from "next/image";
+
 import styles from "./page.module.css";
 import axios from "axios";
-import { useEffect, useState } from "react";
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import useSWR from "swr";
 
 type People = {
   id: number
@@ -46,24 +46,24 @@ const columns = [
   }),
 ]
 
+
 export default function Home() {
 
-  const [data, setData] = useState<People[]>([]);
-
-  const fetchData = async () => {
-    const result = await axios("http://localhost:3000/people");
-    setData(result.data);
+  const fetcher = async (url: string) => {
+    const response = await axios(url);
+    return response.data;
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
+  const { data, error, isLoading } = useSWR("http://localhost:3000/people", fetcher)
+  
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
   })
+
+  if (error) return <div>failed to load</div>
+  if (isLoading) return <div>loading...</div>
 
   console.log(data);
 
@@ -119,3 +119,4 @@ export default function Home() {
     </div>
   );
 }
+
