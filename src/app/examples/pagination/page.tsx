@@ -58,34 +58,30 @@ function page() {
     []
   );
 
-const [data, setData] = useState<Person[]>([]);
+  const [data, setData] = useState<Person[]>([]);
 
   useEffect(() => {
     setData(() => makeData(1000));
-
-  }, [])
+  }, []);
 
   const refreshData = () => setData(() => makeData(1000));
 
   return (
     <>
+      <div className="margin-205">
+        <button className="usa-button" onClick={() => rerender()}>
+          Force Rerender
+        </button>
+        <button className="usa-button" onClick={() => refreshData()}>
+          Refresh Data
+        </button>
+      </div>
       <MyTable
         {...{
           data,
           columns,
         }}
       />
-      <hr />
-      <div>
-        <button className="usa-button" onClick={() => rerender()}>
-          Force Rerender
-        </button>
-      </div>
-      <div>
-        <button className="usa-button" onClick={() => refreshData()}>
-          Refresh Data
-        </button>
-      </div>
     </>
   );
 }
@@ -97,10 +93,12 @@ function MyTable({
   data: Person[];
   columns: ColumnDef<Person>[];
 }) {
-  const [pagination, setPagination] = React.useState<PaginationState>({
+  const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
+
+  const [filtering, setFiltering] = useState<string>("");
 
   const table = useReactTable({
     columns,
@@ -114,137 +112,149 @@ function MyTable({
     //no need to pass pageCount or rowCount with client-side pagination as it is calculated automatically
     state: {
       pagination,
+      globalFilter: filtering,
     },
+    onGlobalFilterChange: setFiltering,
     // autoResetPageIndex: false, // turn off page index reset when sorting or filtering
   });
 
   return (
     <>
-    <div className="margin-205">
-      <table className="usa-table usa-table--striped">
-        <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <th key={header.id} colSpan={header.colSpan}>
-                    <div
-                      {...{
-                        className: header.column.getCanSort()
-                          ? "cursor-pointer select-none"
-                          : "",
-                        onClick: header.column.getToggleSortingHandler(),
-                      }}
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      {{
-                        asc: " 🔼",
-                        desc: " 🔽",
-                      }[header.column.getIsSorted() as string] ?? null}
-                      {header.column.getCanFilter() ? (
-                        <div>
-                          <Filter column={header.column} table={table} />
-                        </div>
-                      ) : null}
-                    </div>
-                  </th>
-                );
-              })}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => {
-            return (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => {
+      <div className="margin-205 width-desktop">
+        <div className="width-full">
+          <input
+            className="usa-input width-full radius-pill shadow-4"
+            placeholder="Search..."
+            value={filtering}
+            onChange={(e) => setFiltering(e.target.value)}
+          />
+        </div>
+        <div>
+        <table className="usa-table usa-table--striped shadow-4 radius-lg">
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
                   return (
-                    <td key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </td>
+                    <th key={header.id} colSpan={header.colSpan}>
+                      <div
+                        {...{
+                          className: header.column.getCanSort()
+                            ? "cursor-pointer select-none"
+                            : "",
+                          onClick: header.column.getToggleSortingHandler(),
+                        }}
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                        {{
+                          asc: " 🔼",
+                          desc: " 🔽",
+                        }[header.column.getIsSorted() as string] ?? null}
+                        {header.column.getCanFilter() ? (
+                          <div>
+                            <Filter column={header.column} table={table} />
+                          </div>
+                        ) : null}
+                      </div>
+                    </th>
                   );
                 })}
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <div className="flex items-center gap-2">
-        <button
-          className="usa-button border rounded p-1"
-          onClick={() => table.firstPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          {"<<"}
-        </button>
-        <button
-          className="usa-button border rounded p-1"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          {"<"}
-        </button>
-        <button
-          className="usa-button border rounded p-1"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          {">"}
-        </button>
-        <button
-          className="usa-button border rounded p-1"
-          onClick={() => table.lastPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          {">>"}
-        </button>
-        <span className="flex items-center gap-1">
-          <div>Page</div>
-          <strong>
-            {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount().toLocaleString()}
-          </strong>
-        </span>
-        <span className="flex items-center gap-1">
-          | Go to page:
-          <input
-            type="number"
-            min="1"
-            max={table.getPageCount()}
-            defaultValue={table.getState().pagination.pageIndex + 1}
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => {
+              return (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => {
+                    return (
+                      <td key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="usa-button border rounded p-1"
+            onClick={() => table.firstPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            {"<<"}
+          </button>
+          <button
+            className="usa-button border rounded p-1"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            {"<"}
+          </button>
+          <button
+            className="usa-button border rounded p-1"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            {">"}
+          </button>
+          <button
+            className="usa-button border rounded p-1"
+            onClick={() => table.lastPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            {">>"}
+          </button>
+          <span className="flex items-center gap-1">
+            <div>Page</div>
+            <strong>
+              {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount().toLocaleString()}
+            </strong>
+          </span>
+          <span className="flex items-center gap-1">
+            | Go to page:
+            <input
+              type="number"
+              min="1"
+              max={table.getPageCount()}
+              defaultValue={table.getState().pagination.pageIndex + 1}
+              onChange={(e) => {
+                const page = e.target.value ? Number(e.target.value) - 1 : 0;
+                table.setPageIndex(page);
+              }}
+              className="usa-input border p-1 rounded width-10"
+            />
+          </span>
+          <select
+            className="usa-select width-10"
+            value={table.getState().pagination.pageSize}
             onChange={(e) => {
-              const page = e.target.value ? Number(e.target.value) - 1 : 0;
-              table.setPageIndex(page);
+              table.setPageSize(Number(e.target.value));
             }}
-            className="usa-input border p-1 rounded width-10"
-          />
-        </span>
-        <select
-          className="usa-select width-10"
-          value={table.getState().pagination.pageSize}
-          onChange={(e) => {
-            table.setPageSize(Number(e.target.value));
-          }}
-        >
-          {[10, 20, 30, 40, 50].map((pageSize) => (
-            <option key={pageSize} value={pageSize}>
-              Show {pageSize}
-            </option>
-          ))}
-        </select>
+          >
+            {[10, 20, 30, 40, 50].map((pageSize) => (
+              <option key={pageSize} value={pageSize}>
+                Show {pageSize}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          Showing {table.getRowModel().rows.length.toLocaleString()} of{" "}
+          {table.getRowCount().toLocaleString()} Rows
+        </div>
+        <pre>{JSON.stringify(table.getState().pagination, null, 2)}</pre>
       </div>
-      <div>
-        Showing {table.getRowModel().rows.length.toLocaleString()} of{" "}
-        {table.getRowCount().toLocaleString()} Rows
-      </div>
-      <pre>{JSON.stringify(table.getState().pagination, null, 2)}</pre>
-    </div>
     </>
   );
 }
